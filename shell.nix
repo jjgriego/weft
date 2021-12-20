@@ -12,7 +12,7 @@ in
 
 crossPkgs.mkShell {
   name = "weft-dev";
-  depsBuildBuild = with pkgs; [ bootboot.mkbootimg (haskellPackages.ghcWithPackages (hs: with hs; [cabal-install]))];
+  depsBuildBuild = with pkgs; [ llvmPackages_12.clang-unwrapped bootboot.mkbootimg (haskellPackages.ghcWithPackages (hs: with hs; [cabal-install]))];
   buildInputs = [ bootboot.include ];
 
   shellHook = ''

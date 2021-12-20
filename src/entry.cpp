@@ -1,26 +1,24 @@
-#include <cstdint>
-#include <bootboot.h>
+export module entry;
+
+import stdint;
+import bootboot;
+import virtmem;
+
 
 using size_t = uint64_t;
 
 inline uint8_t inb(uint16_t port) {
   uint8_t out;
-  asm volatile ("movw %1, %%dx \n\t"
-                "inb %%dx, %%al \n\t"
-                "mov %%al, %0 \n\t"
-                : "=r" (out)
-                : "g" (port)
-                : "rax", "dx");
+  asm volatile ("inb %%dx, %%al"
+                : "=a" (out)
+                : "d" (port));
   return out;
 }
 
 #define outb(port, val)                         \
-  asm volatile ("movb %0, %%al\n\t"             \
-                "movw %1, %%dx\n\t"             \
-                "outb %%al, %%dx"               \
+  asm volatile ("outb %%al, %%dx"               \
                 : /* no outputs */              \
-                : "g" (val), "n" (port)         \
-                : "rax", "dx")                  \
+                : "a" (val), "d" (port))
 
 
 inline void write_str_port(uint16_t port, const char* bytes, size_t len) {
@@ -32,7 +30,6 @@ inline void write_str_port(uint16_t port, const char* bytes, size_t len) {
 
 extern "C" {
 
-extern BOOTBOOT bootboot;
 extern unsigned char environment[4096];
 extern uint8_t fb;
 
@@ -40,6 +37,11 @@ extern uint8_t fb;
 void entry_point()
 {
   write_str_port(0x3f8, "hello, cruel world\r\n", 20);
+  const auto mmap_entries = bootboot.size;
+  auto entry = &bootboot.mmap;
+  for (size_t i = 0; i < mmap_entries; i++) {
+    write_str_port(0x3f8, "entry\r\n", 7);
+  }
   while (1);
 }
 

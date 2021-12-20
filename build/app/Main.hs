@@ -1,38 +1,14 @@
+{-# LANGUAGE TypeFamilies #-}
 module Main where
 
 import Development.Shake
 import Development.Shake.FilePath
 import System.Directory
 
-artifact path = "build/out/" ++ path
-artifactName path = makeRelative "build/out" path
+import Util
+import qualified Module as M
 
-cpp_compile outfile = do
-  let infile = "src" </> (dropExtension $ artifactName outfile)
-  need [infile]
-  command_ [] "x86_64-elf-gcc" [ "-c", infile
-                               , "-o", outfile
-                               , "-std=c++20"
-                               , "-ffreestanding"
-                               , "-mcmodel=large"
-                               , "-mno-red-zone"
-                               , "-mno-mmx"
-                               , "-mno-sse"
-                               , "-O2"
-                               , "-mno-sse2"
-                               , "-fpic"
-                               , "-fno-stack-protector"
-                               , "-fno-exceptions"
-                               , "-fno-rtti"
-                               -- , "-nostdinc"
-                               , "-nostdlib"
-                               ]
-
-kernelObjects = (artifact . flip addExtension ".o") <$>
-  [ "entry.cpp"
-  ]
-
-
+getSourceFiles = readFileLines "src/Sources.txt"
 
 main :: IO ()
 main = do
@@ -43,17 +19,13 @@ main = do
 
     phony "clean" $ removeFilesAfter "build/out" ["//"]
 
-    -- "build/out" %> cmd_ "mkdir -p build/out"
-    (artifact "*.cpp.o") %> cpp_compile
+    lookupMod <- M.rules cxx
 
     (artifact "weft.x86_64.elf") %> \out -> do
-      kernelObjects <- fmap (("build/out" </>) . flip addExtension ".o") <$> readFileLines "src/Sources.txt"
-      need (kernelObjects ++ ["kernel.ld"])
-      command_ [] "x86_64-elf-ld" ([ "-nostdlib"
-                                  , "-nostartfiles"
-                                  , "-T", "kernel.ld"
-                                  , "-o", out ]
-                                  ++ kernelObjects)
+      roots <- mapM lookupMod ["src/entry.cpp"]
+      M.link out (addFlags cxx [ "-T", "kernel.ld"
+                               -- , "-fwhole-program"
+                               ]) roots
 
     (artifact "dist/weft.iso")%> \out -> do
       let kernel_exe = "build/out/weft.x86_64.elf"
@@ -66,5 +38,28 @@ main = do
       cmd_ "cp" [mkbootimg_config] "build/out/"
       cmd_ "cp" [bootboot_config] "build/out/"
       command_ [Cwd "build/out"] "mkbootimg" [ mkbootimg_config
-                                             , artifactName out
-                                             ]
+                                            , artifactName out
+                                            ]
+
+  where
+    commandBase opts str flags addnlFlags = command_ opts str (flags ++ addnlFlags)
+    addFlags f flags = (\addnlFlags -> f (flags ++ addnlFlags))
+    cxx additionalFlags = do
+      envFlags <- words <$> maybe "" id <$> getEnv "NIX_CFLAGS_COMPILE"
+      command_ [] "clang" ([ "--target=x86_64-unknown-none-elf"
+                           , "-std=c++20"
+                           , "-ffreestanding"
+                           , "-mcmodel=large"
+                           , "-fdiagnostics-color=always"
+                           , "-mno-red-zone"
+                           , "-mno-mmx"
+                           , "-mno-sse"
+                           , "-O2"
+                           , "-fdiagnostics-color=always"
+                           , "-mno-sse2"
+                           , "-fpic"
+                           , "-fno-stack-protector"
+                           , "-fno-exceptions"
+                           , "-fno-rtti"
+                           , "-nostdlib"
+                           ] ++ envFlags ++ additionalFlags)
