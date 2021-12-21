@@ -12,8 +12,8 @@ in
 
 crossPkgs.mkShell {
   name = "weft-dev";
-  depsBuildBuild = with pkgs; [ llvmPackages_12.clang-unwrapped bootboot.mkbootimg (haskellPackages.ghcWithPackages (hs: with hs; [cabal-install]))];
-  buildInputs = with crossPkgs; [ gcc11 bootboot.include ];
+  depsBuildBuild = with pkgs; [ bootboot.mkbootimg (haskellPackages.ghcWithPackages (hs: with hs; [cabal-install]))];
+  buildInputs = [ bootboot.include ];
 
   shellHook = ''
     function weft-build () {

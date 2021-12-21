@@ -1,21 +1,11 @@
-export module virtmem;
+#include "virtmem.hpp"
 
-import bootboot;
-import stdint;
-import serial;
-import bytes;
-import panic;
+#include "bootboot.hpp"
+#include "bytes.hpp"
+#include "serial.hpp"
+#include "panic.hpp"
 
 using namespace bytes;
-
-/*
- * This module is responsible for tracking the virtual memory state of the
- * machine, which, for now, is a relatively simple task since we're not going to
- * change the memory map we get handed from the bootloader right now.
- *
- * This is also the source of truth for the allocator and other parts of the
- * runtime to reserve pages of memory
- */
 
 namespace virtmem {
 
@@ -34,9 +24,8 @@ struct map {
   entry entries[mmap_max_entries];
 } g_map;
 
-export void init() {
+void init() {
   serial::write("initializing virtmem\r\n"_bv);
-  using namespace bootboot_util;
 
   const auto mmap_entries = bootboot.size;
   auto entry = &bootboot.mmap;
@@ -44,22 +33,22 @@ export void init() {
     panic("too many mmap entries at boot to fit in table"_bv);
   }
   for (size_t i = 0; i < mmap_entries; i++, entry++) {
-    auto type = mmap_entry_type(entry);
+    auto type = MMapEnt_Type(entry);
     switch (type) {
-    case entry_used:
-    case entry_acpi:
-    case entry_mmio:
+    case MMAP_USED:
+    case MMAP_ACPI:
+    case MMAP_MMIO:
       g_map.entries[i] = map::entry {
         map::entry_type::system,
         entry->ptr,
-        mmap_entry_size(entry)
+        MMapEnt_Size(entry)
       };
       break;
-    case entry_free:
+    case MMAP_FREE:
       g_map.entries[i] = map::entry {
         map::entry_type::available,
         entry->ptr,
-        mmap_entry_size(entry)
+        MMapEnt_Size(entry)
       };
       break;
     default:
@@ -68,12 +57,8 @@ export void init() {
   }
 }
 
-export struct page_handle {
-  uintptr_t base_addr;
-  size_t    length;
-};
-
 page_handle reserve_page() {
+  panic("nyi"_bv);
 
   
 }

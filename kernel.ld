@@ -1,4 +1,4 @@
-ENTRY(_ZW5entryE11entry_pointv)
+ENTRY(entry_point)
 
 mmio        = 0xfffffffff8000000;              /* these are configurable for level 2 loaders */
 fb          = 0xfffffffffc000000;
