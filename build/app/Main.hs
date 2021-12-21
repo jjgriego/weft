@@ -19,13 +19,12 @@ main = do
 
     phony "clean" $ removeFilesAfter "build/out" ["//"]
 
-    lookupMod <- M.rules cxx
-
-    (artifact "weft.x86_64.elf") %> \out -> do
-      roots <- mapM lookupMod ["src/entry.cpp"]
-      M.link out (addFlags cxx [ "-T", "kernel.ld"
-                               -- , "-fwhole-program"
-                               ]) roots
+    M.moduleObj cxx ld (artifact "weft.x86_64.elf") ["entry"]
+    -- (artifact "weft.x86_64.elf") %> \out -> do
+      -- roots <- mapM lookupMod ["entry"]
+      -- M.link out (addFlags cxx [ "-T", "kernel.ld"
+                               -- -- , "-fwhole-program"
+                               -- ]) roots
 
     (artifact "dist/weft.iso")%> \out -> do
       let kernel_exe = "build/out/weft.x86_64.elf"
@@ -44,10 +43,11 @@ main = do
   where
     commandBase opts str flags addnlFlags = command_ opts str (flags ++ addnlFlags)
     addFlags f flags = (\addnlFlags -> f (flags ++ addnlFlags))
+
     cxx additionalFlags = do
       envFlags <- words <$> maybe "" id <$> getEnv "NIX_CFLAGS_COMPILE"
-      command_ [] "clang" ([ "--target=x86_64-unknown-none-elf"
-                           , "-std=c++20"
+      command_ [] "x86_64-elf-gcc" (["-std=c++20"
+                                    , "-fmodules-ts"
                            , "-ffreestanding"
                            , "-mcmodel=large"
                            , "-fdiagnostics-color=always"
@@ -63,3 +63,8 @@ main = do
                            , "-fno-rtti"
                            , "-nostdlib"
                            ] ++ envFlags ++ additionalFlags)
+
+    ld additionalFlags = do
+      need ["kernel.ld"]
+      cxx (["-T", "kernel.ld"] ++ additionalFlags)
+      
