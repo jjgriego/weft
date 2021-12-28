@@ -1,4 +1,5 @@
 #include "bytes.hpp"
+#include "panic.hpp"
 
 namespace bytes {
 
@@ -13,6 +14,11 @@ optional<size_t> bytes_view::find(uint8_t needle, size_t start /* = 0 */) const 
     }
   }
   return {};
+}
+
+bytes_view bytes_view::slice(size_t begin, size_t end) const {
+  if (end < begin) panic("bad slice"_bv);
+  return bytes_view { ptr + begin, end - begin};
 }
 
 }

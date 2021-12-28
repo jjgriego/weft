@@ -21,19 +21,19 @@ struct optional {
     return m_present;
   }
 
-  T* operator*() {
+  T& operator*() {
     if (m_present) {
-      return *m_storage;
+      return **m_storage;
     } else {
       optional_detail::panic_missing_optional();
     }
   }
-  const T* operator*() const {
-    return *const_cast<optional<T>>(this);
+  const T& operator*() const {
+    return **const_cast<optional<T>*>(this);
   }
 
-  T* operator->() { return **this; }
-  const T* operator->() const { return **this; }
+  T* operator->() { return &*this; }
+  const T* operator->() const { return &*this; }
 
 private:
   bool m_present{false};

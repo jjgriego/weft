@@ -14,6 +14,15 @@ inline decltype(auto) move(T&& t) {
   return static_cast<remove_reference_t<T>&&>(t);
 }
 
+template <typename T>
+inline T&& forward(remove_reference_t<T>& t) noexcept {
+  return static_cast<T&&>(t);
+}
+template <typename T>
+inline T&& forward(remove_reference_t<T>&& t) noexcept {
+  return static_cast<T&&>(t);
+}
+
 template <size_t len, size_t align>
 struct aligned_storage {
   uint8_t* operator*() {
@@ -26,6 +35,36 @@ struct aligned_storage {
 
   alignas(align) uint8_t data[len];
 };
+
+template <typename T, typename S>
+constexpr T bit_cast(const S& src) noexcept {
+  T res;
+  memcpy(&res, src, sizeof(S));
+  return res;
+}
+
+template <typename T>
+struct unaligned {
+  static_assert(alignof(unaligned<T>) == alignof(char));
+
+  /* implicit */ unaligned(T&& t) {
+    *this = t;
+  }
+
+  T operator*() {
+    T res;
+    memcpy(&res, data, sizeof(T));
+    return res;
+  }
+
+  void operator=(T&& t) {
+    memcpy(data, &t, sizeof(T));
+  }
+
+
+  char data[sizeof(T)];
+};
+
 
 
 template <typename T>
@@ -48,7 +87,7 @@ private:
   aligned_storage<sizeof(T), alignof(T)> m_storage;
 };
 
-inline void* operator new(size_t len, void* buf) {
+inline void* operator new(size_t /*len*/, void* buf) {
   return buf;
 }
 

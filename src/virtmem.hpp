@@ -16,13 +16,14 @@ namespace virtmem {
 
 void init();
 
-struct page_handle {
+struct vregion {
+
+  size_t size() const { return length; }
+
   uintptr_t base_addr;
   size_t    length;
 };
 
-page_handle reserve_page();
-
-
+vregion allocator_region();
 
 }
